@@ -6,6 +6,17 @@ unsigned int general_flags_g;
 void SysTick_Handler() {
 }
 
+void DMA1_Channel2_3_IRQHandler() {
+   DMA_ClearITPendingBit(DMA1_IT_TC2);
+   set_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
+}
+
+void DMA1_Channel1_IRQHandler() {
+   if (DMA_GetITStatus(DMA1_IT_TC1)) {
+      DMA_ClearITPendingBit(DMA1_IT_TC1);
+   }
+}
+
 void TIM14_IRQHandler() {
    TIM_ClearITPendingBit(TIM14, TIM_IT_Update);
 }
@@ -20,7 +31,6 @@ void I2C1_IRQHandler() {
    } else if (I2C_GetFlagStatus(I2C1, I2C_IT_RXI)) {
 
    }
-
 }
 
 int main() {
@@ -29,6 +39,7 @@ int main() {
    clock_config();
    pins_config();
    external_interrupt_config();
+   dma_config();
    usart_config();
    timer3_confing();
    i2c_config();
@@ -113,6 +124,24 @@ void timer3_confing() {
    TIM_Cmd(TIM3, ENABLE);
 }
 
+void timer14_confing() {
+   DBGMCU_APB1PeriphConfig(DBGMCU_TIM14_STOP, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM14, ENABLE);
+
+   TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   TIM_TimeBaseStructure.TIM_Period = TIMER14_PERIOD;
+   TIM_TimeBaseStructure.TIM_Prescaler = TIMER14_PRESCALER;
+   TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+   TIM_TimeBaseInit(TIM14, &TIM_TimeBaseStructure);
+
+   TIM_ClearITPendingBit(TIM14, TIM_IT_Update);
+   NVIC_EnableIRQ(TIM14_IRQn);
+   TIM_ITConfig(TIM14, TIM_IT_Update, ENABLE);
+
+   TIM_Cmd(TIM14, ENABLE);
+}
+
 void i2c_config() {
    RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
 
@@ -140,22 +169,28 @@ void i2c_config() {
    I2C_ITConfig(I2C1, I2C_IT_RXI | I2C_IT_TCI, ENABLE);
 }
 
-void timer14_confing() {
-   DBGMCU_APB1PeriphConfig(DBGMCU_TIM14_STOP, ENABLE);
-   RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM14, ENABLE);
+void dma_config() {
+   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1 , ENABLE);
 
-   TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-   TIM_TimeBaseStructure.TIM_Period = TIMER14_PERIOD;
-   TIM_TimeBaseStructure.TIM_Prescaler = TIMER14_PRESCALER;
-   TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-   TIM_TimeBaseInit(TIM14, &TIM_TimeBaseStructure);
+   // USART DMA config
+   DMA_InitTypeDef usartDmaInitType;
+   usartDmaInitType.DMA_PeripheralBaseAddr = USART1_TDR_ADDRESS;
+   //dmaInitType.DMA_MemoryBaseAddr = (uint32_t)(&usartDataToBeTransmitted);
+   usartDmaInitType.DMA_DIR = DMA_DIR_PeripheralDST; // Specifies if the peripheral is the source or destination
+   usartDmaInitType.DMA_BufferSize = 0;
+   usartDmaInitType.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+   usartDmaInitType.DMA_MemoryInc = DMA_MemoryInc_Enable; // DMA_MemoryInc_Enable if DMA_InitTypeDef.DMA_BufferSize > 1
+   usartDmaInitType.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+   usartDmaInitType.DMA_MemoryDataSize = DMA_PeripheralDataSize_Byte;
+   usartDmaInitType.DMA_Mode = DMA_Mode_Normal;
+   usartDmaInitType.DMA_Priority = DMA_Priority_Low;
+   usartDmaInitType.DMA_M2M = DMA_M2M_Disable;
+   DMA_Init(USART1_TX_DMA_CHANNEL, &usartDmaInitType);
 
-   TIM_ClearITPendingBit(TIM14, TIM_IT_Update);
-   NVIC_EnableIRQ(TIM14_IRQn);
-   TIM_ITConfig(TIM14, TIM_IT_Update, ENABLE);
-
-   TIM_Cmd(TIM14, ENABLE);
+   DMA_ITConfig(USART1_TX_DMA_CHANNEL, DMA_IT_TC, ENABLE);
+   NVIC_SetPriority(USART1_IRQn, 10);
+   NVIC_EnableIRQ(USART1_IRQn);
+   DMA_Cmd(USART1_TX_DMA_CHANNEL, ENABLE);
 }
 
 void usart_config() {
@@ -167,6 +202,7 @@ void usart_config() {
    usart_pins_config.GPIO_OType = GPIO_OType_PP; // GPIO_OType_OD for USART RX
    GPIO_Init(USART_TX_PORT, &usart_pins_config);
    GPIO_PinAFConfig(USART_TX_PORT, GPIO_PinSource9, GPIO_AF_1);
+   //GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_1);
 
    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
@@ -180,6 +216,11 @@ void usart_config() {
    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
    USART_InitStructure.USART_Mode = USART_Mode_Tx;
    USART_Init(USART1, &USART_InitStructure);
+
+   NVIC_SetPriority(DMA1_Channel2_3_IRQn, 11);
+   NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+
+   USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
 
    USART_Cmd(USART1, ENABLE);
 }
@@ -200,13 +241,17 @@ void external_interrupt_config() {
 
 void send_usard_data(char *string) {
    reset_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
+   DMA_Cmd(USART1_TX_DMA_CHANNEL, DISABLE);
    unsigned short bytes_to_send = get_string_length(string);
 
    if (bytes_to_send == 0) {
       return;
    }
 
+   DMA_SetCurrDataCounter(USART1_TX_DMA_CHANNEL, bytes_to_send);
+   USART1_TX_DMA_CHANNEL->CMAR = (unsigned int) string;
    USART_ClearFlag(USART1, USART_FLAG_TC);
+   DMA_Cmd(USART1_TX_DMA_CHANNEL, ENABLE);
 }
 
 void set_flag(unsigned int *flags, unsigned int flag_value) {
@@ -219,4 +264,12 @@ void reset_flag(unsigned int *flags, unsigned int flag_value) {
 
 unsigned char read_flag(unsigned int flags, unsigned int flag_value) {
    return (flags & flag_value) > 0 ? 1 : 0;
+}
+
+unsigned short get_string_length(char string[]) {
+   unsigned short length = 0;
+
+   for (char *string_pointer = string; *string_pointer != '\0'; string_pointer++, length++) {
+   }
+   return length;
 }
