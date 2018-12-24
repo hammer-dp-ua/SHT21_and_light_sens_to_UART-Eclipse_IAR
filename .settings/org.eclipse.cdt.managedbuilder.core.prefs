@@ -1,0 +1,17 @@
+eclipse.preferences.version=1
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/C_INCLUDE/delimiter=;
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/C_INCLUDE/operation=remove
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/append=true
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/appendContributed=true
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/C_INCLUDE/delimiter=;
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/C_INCLUDE/operation=remove
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/append=true
+environment/buildEnvironmentInclude/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/appendContributed=true
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/LIBRARY_PATH/delimiter=;
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/LIBRARY_PATH/operation=remove
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/append=true
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.debug.v8.0.0.384475669/appendContributed=true
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/LIBRARY_PATH/delimiter=;
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/LIBRARY_PATH/operation=remove
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/append=true
+environment/buildEnvironmentLibrary/iar.arm.toolchain.project.exe.configuration.release.v8.0.0.507201956/appendContributed=true
