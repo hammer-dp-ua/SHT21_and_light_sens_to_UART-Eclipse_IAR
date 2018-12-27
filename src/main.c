@@ -52,6 +52,11 @@ int main() {
    while (1) {
 
       IWDG_ReloadCounter();
+
+      I2C_SlaveAddressConfig(I2C1, SHT21_ADDRESS);
+      I2C_MasterRequestConfig(I2C1, I2C_Direction_Transmitter);
+      I2C_NumberOfBytesConfig(I2C1, 2);
+      I2C_GenerateSTART(I2C1, ENABLE);
    }
 }
 
@@ -166,7 +171,12 @@ void i2c_config() {
    I2C_InitStructure.I2C_Timing = 0x00501D77;
    I2C_Init(I2C1, &I2C_InitStructure);
 
+   I2C_ReloadCmd(I2C1, DISABLE);
+   I2C_AutoEndCmd(I2C1, ENABLE);
+
    I2C_ITConfig(I2C1, I2C_IT_RXI | I2C_IT_TCI, ENABLE);
+
+   I2C_Cmd(I2C1, ENABLE);
 }
 
 void dma_config() {
@@ -202,7 +212,6 @@ void usart_config() {
    usart_pins_config.GPIO_OType = GPIO_OType_PP; // GPIO_OType_OD for USART RX
    GPIO_Init(USART_TX_PORT, &usart_pins_config);
    GPIO_PinAFConfig(USART_TX_PORT, GPIO_PinSource9, GPIO_AF_1);
-   //GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_1);
 
    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 

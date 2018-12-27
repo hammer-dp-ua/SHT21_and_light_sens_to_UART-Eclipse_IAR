@@ -33,6 +33,7 @@
 #define USART_TX_PIN GPIO_Pin_9
 #define USART_TX_PORT GPIOA
 
+#define SHT21_ADDRESS                   (unsigned short) 0x40
 #define SHT21_TRIGGER_T_MEASUREMENT     0xF3 // no hold master
 #define SHT21_TRIGGER_RH_MEASUREMENT    0xF5 // no hold master
 
