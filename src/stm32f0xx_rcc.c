@@ -819,7 +819,7 @@ void RCC_SYSCLKConfig(unsigned int RCC_SYSCLKSource)
   *            @arg RCC_SYSCLK_Div512: AHB clock = SYSCLK/512
   * @retval None
   */
-/*void RCC_HCLKConfig(unsigned int RCC_SYSCLK)
+void RCC_HCLKConfig(unsigned int RCC_SYSCLK)
 {
   unsigned int tmpreg = 0;
   
@@ -836,7 +836,7 @@ void RCC_SYSCLKConfig(unsigned int RCC_SYSCLKSource)
   
   // Store the new value
   RCC->CFGR = tmpreg;
-}*/
+}
 
 /**
   * @brief  Configures the APB clock (PCLK).
@@ -956,7 +956,7 @@ void RCC_I2CCLKConfig(unsigned int RCC_I2CCLK)
   *             @arg RCC_USART3CLK_HSI: USART3 clock = HSI Clock, applicable only for STM32F091 devices   
   * @retval None
   */
-/*void RCC_USARTCLKConfig(unsigned int RCC_USARTCLK)
+void RCC_USARTCLKConfig(unsigned int RCC_USARTCLK)
 { 
   unsigned int tmp = 0;
   
@@ -985,7 +985,7 @@ void RCC_I2CCLKConfig(unsigned int RCC_I2CCLK)
 
   // Set USARTxSW bits according to RCC_USARTCLK value
   RCC->CFGR3 |= RCC_USARTCLK;
-}*/
+}
 
 /**
   * @brief  Configures the USB clock (USBCLK).
@@ -1512,7 +1512,7 @@ void RCC_APB1PeriphClockCmd(unsigned int RCC_APB1Periph, FunctionalState NewStat
   *          This parameter can be: ENABLE or DISABLE.
   * @retval None
   */
-/*void RCC_APB2PeriphResetCmd(unsigned int RCC_APB2Periph, FunctionalState NewState)
+void RCC_APB2PeriphResetCmd(unsigned int RCC_APB2Periph, FunctionalState NewState)
 {
   // Check the parameters
   assert_param(IS_RCC_APB2_PERIPH(RCC_APB2Periph));
@@ -1526,7 +1526,7 @@ void RCC_APB1PeriphClockCmd(unsigned int RCC_APB1Periph, FunctionalState NewStat
   {
     RCC->APB2RSTR &= ~RCC_APB2Periph;
   }
-}*/
+}
 
 /**
   * @brief  Forces or releases Low Speed APB (APB1) peripheral reset.
@@ -1555,7 +1555,7 @@ void RCC_APB1PeriphClockCmd(unsigned int RCC_APB1Periph, FunctionalState NewStat
   *          This parameter can be: ENABLE or DISABLE.
   * @retval None
   */
-/*void RCC_APB1PeriphResetCmd(unsigned int RCC_APB1Periph, FunctionalState NewState)
+void RCC_APB1PeriphResetCmd(unsigned int RCC_APB1Periph, FunctionalState NewState)
 {
   // Check the parameters
   assert_param(IS_RCC_APB1_PERIPH(RCC_APB1Periph));
@@ -1569,7 +1569,7 @@ void RCC_APB1PeriphClockCmd(unsigned int RCC_APB1Periph, FunctionalState NewStat
   {
     RCC->APB1RSTR &= ~RCC_APB1Periph;
   }
-}*/
+}
 
 /**
   * @}

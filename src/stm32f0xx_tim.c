@@ -175,7 +175,7 @@ static void TI4_Config(TIM_TypeDef* TIMx, unsigned short TIM_ICPolarity, unsigne
              TIM_ITConfig(TIMx, TIM_IT_Update). 
          (#) Call the TIM_Cmd(ENABLE) function to enable the TIM counter.
     [..]
-        (@) All other functions can be used seperatly to modify, if needed,
+        (@) All other functions can be used separately to modify, if needed,
             a specific feature of the Timer. 
 
 @endverbatim
@@ -191,7 +191,7 @@ static void TI4_Config(TIM_TypeDef* TIMx, unsigned short TIM_ICPolarity, unsigne
   * @retval None
   *   
   */
-/*void TIM_DeInit(TIM_TypeDef* TIMx)
+void TIM_DeInit(TIM_TypeDef* TIMx)
 {
   assert_param(IS_TIM_ALL_PERIPH(TIMx)); // Check the parameters
 
@@ -244,7 +244,7 @@ static void TI4_Config(TIM_TypeDef* TIMx, unsigned short TIM_ICPolarity, unsigne
     }  
   }
      
-}*/
+}
 
 /**
   * @brief  Initializes the TIMx Time Base Unit peripheral according to 
@@ -252,7 +252,7 @@ static void TI4_Config(TIM_TypeDef* TIMx, unsigned short TIM_ICPolarity, unsigne
   * @param  TIMx: where x can be 1, 2, 3, 6, 7, 14, 15, 16 and 17 to select the TIM 
   *         peripheral.
   * @note   TIM7 is applicable only for STM32F072 devices
-  * @note   TIM6 is not applivable for STM32F031 devices.
+  * @note   TIM6 is not applicable for STM32F031 devices.
   * @note   TIM2 is not applicable for STM32F030 devices.  
   * @param  TIM_TimeBaseInitStruct: pointer to a TIM_TimeBaseInitTypeDef
   *         structure that contains the configuration information for
@@ -379,7 +379,7 @@ void TIM_TimeBaseInit(TIM_TypeDef* TIMx, TIM_TimeBaseInitTypeDef* TIM_TimeBaseIn
   * @param  TIMx: where x can be 1, 2, 3, 6, 7, 14, 15, 16 and 17 to select the TIM 
   *          peripheral.
   * @note   TIM7 is applicable only for STM32F072 devices
-  * @note   TIM6 is not applivable for STM32F031 devices.
+  * @note   TIM6 is not applicable for STM32F031 devices.
   * @note   TIM2 is not applicable for STM32F030 devices.    
   * @param  Counter: specifies the Counter register new value.
   * @retval None

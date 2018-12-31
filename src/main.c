@@ -1,10 +1,10 @@
+// 030F4P6
+
 #include "stm32f0xx.h"
 #include "main.h"
 
 unsigned int general_flags_g;
-
-void SysTick_Handler() {
-}
+unsigned short tim14_counter_g;
 
 void DMA1_Channel2_3_IRQHandler() {
    DMA_ClearITPendingBit(DMA1_IT_TC2);
@@ -19,6 +19,8 @@ void DMA1_Channel1_IRQHandler() {
 
 void TIM14_IRQHandler() {
    TIM_ClearITPendingBit(TIM14, TIM_IT_Update);
+
+   tim14_counter_g++;
 }
 
 void TIM3_IRQHandler() {
@@ -34,29 +36,38 @@ void I2C1_IRQHandler() {
 }
 
 int main() {
-   RCC_APB2PeriphClockCmd(RCC_APB2Periph_DBGMCU, ENABLE);
-   iwdg_config();
+   //RCC_APB2PeriphClockCmd(RCC_APB2Periph_DBGMCU, ENABLE);
+   //iwdg_config();
    clock_config();
    pins_config();
-   external_interrupt_config();
+   //external_interrupt_config();
    dma_config();
    usart_config();
    timer3_confing();
    i2c_config();
    timer14_confing();
 
-   IWDG_ReloadCounter();
+   //IWDG_ReloadCounter();
 
-   set_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
+   //set_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
 
    while (1) {
+      //IWDG_ReloadCounter();
 
-      IWDG_ReloadCounter();
+      if (tim14_counter_g >= TIMER14_10S) {
+         tim14_counter_g = 0;
 
-      I2C_SlaveAddressConfig(I2C1, SHT21_ADDRESS);
-      I2C_MasterRequestConfig(I2C1, I2C_Direction_Transmitter);
-      I2C_NumberOfBytesConfig(I2C1, 2);
-      I2C_GenerateSTART(I2C1, ENABLE);
+         I2C_SlaveAddressConfig(I2C1, SHT21_ADDRESS);
+         I2C_MasterRequestConfig(I2C1, I2C_Direction_Transmitter);
+         I2C_NumberOfBytesConfig(I2C1, 1);
+         I2C_GenerateSTART(I2C1, ENABLE);
+
+         if (GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_5)) {
+            GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_RESET);
+         } else {
+            GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_SET);
+         }
+      }
    }
 }
 
@@ -72,11 +83,11 @@ void iwdg_config() {
 }
 
 void clock_config() {
-   RCC_SYSCLKConfig(RCC_SYSCLKSource_HSI);
-   RCC_PLLCmd(DISABLE);
-   while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == SET);
+   RCC_HCLKConfig(RCC_SYSCLK_Div1); // default actually
+   RCC_PCLKConfig(RCC_HCLK_Div1); // default actually
 
    RCC_I2CCLKConfig(RCC_I2C1CLK_HSI);
+   RCC_USARTCLKConfig(RCC_USART1CLK_HSI);
 }
 
 void init_pin_as_output(GPIO_TypeDef* GPIOx, unsigned int pin) {
@@ -105,6 +116,15 @@ void pins_config() {
    GPIO_Init(GPIOB, &ports_default_config);
 
    GPIO_Init(GPIOF, &ports_default_config);
+
+   GPIO_InitTypeDef led_pin_config;
+   led_pin_config.GPIO_Pin = GPIO_Pin_5;
+   led_pin_config.GPIO_Mode = GPIO_Mode_OUT;
+   led_pin_config.GPIO_Speed = GPIO_Speed_Level_1;
+   led_pin_config.GPIO_PuPd = GPIO_PuPd_DOWN;
+   led_pin_config.GPIO_OType = GPIO_OType_PP;
+   GPIO_Init(GPIOA, &led_pin_config);
+   GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_RESET);
 }
 
 /**
@@ -113,7 +133,10 @@ void pins_config() {
  * Frequency = 16Mhz, USART_BAUD_RATE = 115200. Tt = 0.13ms
  */
 void timer3_confing() {
-   DBGMCU_APB1PeriphConfig(DBGMCU_TIM3_STOP, ENABLE);
+   TIM_DeInit(TIM3);
+   TIM_SetCounter(TIM3, 0);
+
+   //DBGMCU_APB1PeriphConfig(DBGMCU_TIM3_STOP, ENABLE);
    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
@@ -130,7 +153,10 @@ void timer3_confing() {
 }
 
 void timer14_confing() {
-   DBGMCU_APB1PeriphConfig(DBGMCU_TIM14_STOP, ENABLE);
+   TIM_DeInit(TIM14);
+   TIM_SetCounter(TIM14, 0);
+
+   //DBGMCU_APB1PeriphConfig(DBGMCU_TIM14_STOP, ENABLE);
    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM14, ENABLE);
 
    TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
