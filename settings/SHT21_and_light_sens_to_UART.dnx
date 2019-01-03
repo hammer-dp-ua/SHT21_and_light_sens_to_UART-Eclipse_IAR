@@ -19,12 +19,12 @@
         <ShowArgs>0</ShowArgs>
     </CallStack>
     <StLinkDriver>
+        <stlinkserialNo>30290387</stlinkserialNo>
+        <stlinkfoundProbes />
         <CStepIntDis>_ 0</CStepIntDis>
         <LeaveTargetRunning>_ 0</LeaveTargetRunning>
         <stlinkResetStyle>1</stlinkResetStyle>
         <stlinkResetStrategy>2</stlinkResetStrategy>
-        <stlinkserialNo>30290387</stlinkserialNo>
-        <stlinkfoundProbes />
     </StLinkDriver>
     <Exceptions>
         <StopOnUncaught>_ 0</StopOnUncaught>
@@ -45,9 +45,6 @@
         <SumEnabled>0</SumEnabled>
         <ShowTimeSum>1</ShowTimeSum>
     </DataLog>
-    <Breakpoints2>
-        <Count>0</Count>
-    </Breakpoints2>
     <Interrupts>
         <Enabled>1</Enabled>
     </Interrupts>
@@ -65,15 +62,18 @@
         <Symbiont>0</Symbiont>
         <Exclusions />
     </DriverProfiling>
+    <Simulator>
+        <Freq>10000000</Freq>
+        <FreqHi>0</FreqHi>
+        <MultiCoreRunAll>1</MultiCoreRunAll>
+    </Simulator>
+    <Breakpoints2>
+        <Count>0</Count>
+    </Breakpoints2>
     <CallStackLog>
         <Enabled>0</Enabled>
     </CallStackLog>
     <CallStackStripe>
         <ShowTiming>1</ShowTiming>
     </CallStackStripe>
-    <Simulator>
-        <Freq>10000000</Freq>
-        <FreqHi>0</FreqHi>
-        <MultiCoreRunAll>1</MultiCoreRunAll>
-    </Simulator>
 </settings>

@@ -320,12 +320,12 @@ void I2C_SoftwareResetCmd(I2C_TypeDef* I2Cx)
   * @param  I2C_IT: specifies the I2C interrupts sources to be enabled or disabled. 
   *          This parameter can be any combination of the following values:
   *            @arg I2C_IT_ERRI: Error interrupt mask
-  *            @arg I2C_IT_TCI: Transfer Complete interrupt mask
+  *            @arg I2C_IT_TCI: Transfer Complete interrupt mask (TCIE)
   *            @arg I2C_IT_STOPI: Stop Detection interrupt mask
   *            @arg I2C_IT_NACKI: Not Acknowledge received interrupt mask
   *            @arg I2C_IT_ADDRI: Address Match interrupt mask  
-  *            @arg I2C_IT_RXI: RX interrupt mask
-  *            @arg I2C_IT_TXI: TX interrupt mask
+  *            @arg I2C_IT_RXI: RX interrupt mask (RXIE)
+  *            @arg I2C_IT_TXI: TX interrupt mask (TXIE)
   * @param  NewState: new state of the specified I2C interrupts.
   *          This parameter can be: ENABLE or DISABLE.
   * @retval None
@@ -535,6 +535,11 @@ void I2C_SlaveAddressConfig(I2C_TypeDef* I2Cx, unsigned short Address)
   /* Reset I2Cx SADD bit [9:0] */
   tmpreg &= (unsigned int)~((unsigned int)I2C_CR2_SADD);
 
+  if (!(I2Cx->CR2 & I2C_CR2_ADD10))
+  {
+     /* 7-bit addressing mode */
+     Address <<= 1;
+  }
   /* Set I2Cx SADD */
   tmpreg |= (unsigned int)((unsigned int)Address & I2C_CR2_SADD);
 
@@ -1547,7 +1552,7 @@ ITStatus I2C_GetITStatus(I2C_TypeDef* I2Cx, unsigned int I2C_IT)
   *          This parameter can be any combination of the following values:
   *            @arg I2C_IT_ADDR: Address matched (slave mode)
   *            @arg I2C_IT_NACKF: NACK received flag
-  *            @arg I2C_IT_STOPF: STOP detection flag
+  *            @arg I2C_IT_STOPF: STOP detection flag (STOPCF bit)
   *            @arg I2C_IT_BERR: Bus error
   *            @arg I2C_IT_ARLO: Arbitration lost
   *            @arg I2C_IT_OVR: Overrun/Underrun
