@@ -47,12 +47,16 @@ typedef struct {
    unsigned char address;
    SHT21_Commands command;
    unsigned char status;
+   unsigned short received_data;
+   unsigned char received_data_checksum;
+   unsigned char received_bytes;
 } SHT21_Measurement_TypeDef;
 
 typedef enum {
    SHT21_WRITE_SENT_FLAG = 1,
    SHT21_COMMAND_SENT_FLAG = 2,
-   SHT21_READ_SENT_FLAG = 4
+   SHT21_READ_SENT_FLAG = 4,
+   SHT21_DATA_READ_FLAG = 8
 } SHT21_Measurement_Flags;
 
 void iwdg_config();
@@ -71,3 +75,5 @@ void reset_flag(unsigned int *flags, unsigned int flag_value);
 unsigned char read_flag(unsigned int flags, unsigned int flag_value);
 unsigned short get_string_length(char string[]);
 void init_sht21_measurements_queue();
+void send_I2C_command(unsigned char address);
+void read_I2C(unsigned char address);
