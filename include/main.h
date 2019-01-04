@@ -14,7 +14,8 @@
 #define USART1_TDR_ADDRESS (unsigned int) (&(USART1->TDR))
 
 // General flags
-#define USART_TRANSFER_COMPLETE_FLAG 1
+#define USART_TRANSFER_COMPLETE_FLAG            (unsigned int) 1
+#define SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG   (unsigned int) 2
 
 #define USART_DATA_RECEIVED_BUFFER_SIZE 50
 
@@ -33,9 +34,26 @@
 #define USART_TX_PIN GPIO_Pin_9
 #define USART_TX_PORT GPIOA
 
-#define SHT21_ADDRESS                   (unsigned short) 0x40
-#define SHT21_TRIGGER_T_MEASUREMENT     0xF3 // no hold master
-#define SHT21_TRIGGER_RH_MEASUREMENT    0xF5 // no hold master
+#define SHT21_ADDRESS                   (unsigned char) 0x40
+#define SHT21_ADDRESS_READ              (unsigned char) ((SHT21_ADDRESS << 1) | 0x1)
+
+//typedef enum {I2C_WRITE = 0, I2C_READ = !I2C_WRITE} I2C_SDA_Direction_Bit;
+typedef enum {
+   TRIGGER_T_MEASUREMENT = 0xF3,
+   TRIGGER_RH_MEASUREMENT = 0xF5
+} SHT21_Commands;
+
+typedef struct {
+   unsigned char address;
+   SHT21_Commands command;
+   unsigned char status;
+} SHT21_Measurement_TypeDef;
+
+typedef enum {
+   SHT21_WRITE_SENT_FLAG = 1,
+   SHT21_COMMAND_SENT_FLAG = 2,
+   SHT21_READ_SENT_FLAG = 4
+} SHT21_Measurement_Flags;
 
 void iwdg_config();
 void clock_config();
@@ -52,3 +70,4 @@ void set_flag(unsigned int *flags, unsigned int flag_value);
 void reset_flag(unsigned int *flags, unsigned int flag_value);
 unsigned char read_flag(unsigned int flags, unsigned int flag_value);
 unsigned short get_string_length(char string[]);
+void init_sht21_measurements_queue();
