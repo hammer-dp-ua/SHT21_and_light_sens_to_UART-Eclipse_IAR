@@ -34,15 +34,10 @@ void I2C1_IRQHandler() {
    i2c1_isr_register_g |= I2C1->ISR;
    SHT21_Measurement_TypeDef current_measurement = sht21_measurements_queue_g[sht21_measurements_queue_index_g];
 
-   if (I2C_GetFlagStatus(I2C1, I2C_FLAG_TXIS) || I2C_GetFlagStatus(I2C1, I2C_FLAG_TXE)) {
+   if (I2C_GetFlagStatus(I2C1, I2C_FLAG_TXIS)) {
       /* I2C_FLAG_TXIS. This bit is set by hardware when the I2C_TXDR register is empty and the data to be
        * transmitted must be written in the I2C_TXDR register. It is cleared when the next data to be
        * sent is written in the I2C_TXDR register.
-       */
-
-      /*
-       * I2C_FLAG_TXE. This bit is set by hardware when the I2C_TXDR register is empty. It is cleared when the next
-       * data to be sent is written in the I2C_TXDR register.
        */
       if (current_measurement.status & SHT21_WRITE_SENT_FLAG) {
          sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= !SHT21_WRITE_SENT_FLAG;
@@ -302,7 +297,7 @@ void i2c_config() {
 
    NVIC_EnableIRQ(I2C1_IRQn);
    // The number of TXIS events during the transfer corresponds to the value programmed in NBYTES[7:0]
-   I2C_ITConfig(I2C1, I2C_IT_TXI | I2C_IT_ERRI | I2C_IT_TCI | I2C_IT_STOPI | I2C_IT_NACKI | I2C_IT_ADDRI | I2C_IT_RXI, ENABLE);
+   I2C_ITConfig(I2C1, I2C_IT_TXI | I2C_IT_ERRI | I2C_IT_STOPI | I2C_IT_NACKI | I2C_IT_ADDRI | I2C_IT_RXI, ENABLE);
 
    I2C_Cmd(I2C1, ENABLE);
 }
