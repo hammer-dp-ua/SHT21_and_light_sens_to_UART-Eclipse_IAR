@@ -22,9 +22,6 @@
 #define TIMER3_10MS (unsigned short) (10 / TIMER3_MS_PER_PERIOD)
 #define TIMER3_100MS (unsigned short) (100 / TIMER3_MS_PER_PERIOD)
 #define TIMER3_500MS (unsigned short) (500 / TIMER3_MS_PER_PERIOD)
-#define TIMER14_100MS 1
-#define TIMER14_200MS 2
-#define TIMER14_500MS 5
 #define TIMER14_1S (unsigned short) (1 * TIMER14_TACTS_PER_SECOND)
 #define TIMER14_10S (unsigned short) (10 * TIMER14_TACTS_PER_SECOND)
 #define TIMER14_30S (unsigned short) (30 * TIMER14_TACTS_PER_SECOND)
@@ -50,13 +47,18 @@ typedef struct {
    unsigned short received_data;
    unsigned char received_data_checksum;
    unsigned char received_bytes;
+   unsigned char received_stops;
 } SHT21_Measurement_TypeDef;
 
 typedef enum {
-   SHT21_WRITE_SENT_FLAG = 1,
-   SHT21_COMMAND_SENT_FLAG = 2,
-   SHT21_READ_SENT_FLAG = 4,
-   SHT21_DATA_READ_FLAG = 8
+   SHT21_WRITE_SENT_FLAG =      (unsigned char) 1,
+   SHT21_COMMAND_SENT_FLAG =    (unsigned char) 2,
+   SHT21_READ_SENT_FLAG =       (unsigned char) 4,
+   SHT21_DATA_READ_FLAG =       (unsigned char) 8,
+   SHT21_NACK_RECEIVED_FLAG =   (unsigned char) 16,
+   SHT21_DATA_WASNT_READ_FLAG = (unsigned char) 32,
+   SHT21_STOP_RECEIVED_FLAG =   (unsigned char) 64,
+   SHT21_REREAD_FLAG        =   (unsigned char) 128
 } SHT21_Measurement_Flags;
 
 void iwdg_config();
@@ -77,3 +79,4 @@ unsigned short get_string_length(char string[]);
 void init_sht21_measurements_queue();
 void send_I2C_command(unsigned char address);
 void read_I2C(unsigned char address);
+void sht21_measure_next_parameter();

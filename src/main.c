@@ -6,8 +6,9 @@
 unsigned int general_flags_g;
 unsigned short tim14_counter_g;
 unsigned int i2c1_isr_register_g;
-volatile SHT21_Measurement_TypeDef sht21_measurements_queue_g[2];
+SHT21_Measurement_TypeDef sht21_measurements_queue_g[2];
 unsigned char sht21_measurements_queue_index_g;
+unsigned short sht21_measurement_countdown_counter_g;
 
 void DMA1_Channel2_3_IRQHandler() {
    DMA_ClearITPendingBit(DMA1_IT_TC2);
@@ -28,6 +29,10 @@ void TIM14_IRQHandler() {
 
 void TIM3_IRQHandler() {
    TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+
+   if (sht21_measurement_countdown_counter_g) {
+      sht21_measurement_countdown_counter_g--;
+   }
 }
 
 void I2C1_IRQHandler() {
@@ -40,14 +45,15 @@ void I2C1_IRQHandler() {
        * sent is written in the I2C_TXDR register.
        */
       if (current_measurement.status & SHT21_WRITE_SENT_FLAG) {
-         sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= !SHT21_WRITE_SENT_FLAG;
+         sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_WRITE_SENT_FLAG;
          I2C_SendData(I2C1, current_measurement.command);
          sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_COMMAND_SENT_FLAG;
+         sht21_measurement_countdown_counter_g = TIMER3_100MS;
       }
    } else if (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE)) {
       unsigned short received_data = I2C_ReceiveData(I2C1);
 
-      if (current_measurement.status == SHT21_READ_SENT_FLAG) {
+      if (current_measurement.status & SHT21_READ_SENT_FLAG) {
          if (current_measurement.received_bytes == 2) {
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_data_checksum = (unsigned char) received_data;
          } else {
@@ -58,7 +64,7 @@ void I2C1_IRQHandler() {
          sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes++;
 
          if (sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes >= 3) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= !SHT21_READ_SENT_FLAG;
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_READ_SENT_FLAG;
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_DATA_READ_FLAG;
          }
       }
@@ -68,6 +74,9 @@ void I2C1_IRQHandler() {
        * – or as a slave, provided that the peripheral has been addressed previously during this transfer.
        */
       I2C_ClearITPendingBit(I2C1, I2C_IT_STOPF);
+
+      sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_STOP_RECEIVED_FLAG;
+      sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_stops++;
    } else if (I2C_GetFlagStatus(I2C1, I2C_FLAG_NACKF)) {
       // This flag is set by hardware when a NACK is received after a byte transmission.
       I2C_ClearITPendingBit(I2C1, I2C_IT_NACKF);
@@ -87,8 +96,8 @@ int main() {
    dma_config();
    usart_config();
    timer3_confing();
-   i2c_config();
    timer14_confing();
+   i2c_config();
 
    //IWDG_ReloadCounter();
 
@@ -118,19 +127,46 @@ int main() {
          if (current_measurement.status == 0) {
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_WRITE_SENT_FLAG;
             send_I2C_command(current_measurement.address);
-         } else if (current_measurement.status == SHT21_COMMAND_SENT_FLAG) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= !SHT21_COMMAND_SENT_FLAG;
+         } else if ((current_measurement.status & SHT21_COMMAND_SENT_FLAG) && sht21_measurement_countdown_counter_g == 0) {
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_COMMAND_SENT_FLAG;
             read_I2C(current_measurement.address);
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_READ_SENT_FLAG;
-         } else if (current_measurement.status == SHT21_DATA_READ_FLAG) {
-            sht21_measurements_queue_index_g++;
+         } else if (current_measurement.status & SHT21_DATA_READ_FLAG) {
 
-            if (sht21_measurements_queue_index_g >= 2) {
-               init_sht21_measurements_queue();
-               reset_flag(&general_flags_g, SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG);
+
+            sht21_measure_next_parameter();
+         } else if ((current_measurement.status & (SHT21_STOP_RECEIVED_FLAG | SHT21_READ_SENT_FLAG))) {
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_STOP_RECEIVED_FLAG;
+
+            if (current_measurement.received_stops < 4) {
+               sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_REREAD_FLAG;
+               sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes = 0;
+               sht21_measurement_countdown_counter_g = TIMER3_100MS;
+            } else {
+               sht21_measure_next_parameter();
             }
+         } else if ((current_measurement.status & SHT21_REREAD_FLAG) && sht21_measurement_countdown_counter_g == 0) {
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_REREAD_FLAG;
+            read_I2C(current_measurement.address);
          }
+         /*else if (current_measurement.status & SHT21_STOP_RECEIVED_DLAG) {
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= !SHT21_STOP_RECEIVED_DLAG;
+
+            if (current_measurement.status & SHT21_READ_SENT_FLAG) {
+               sht21_measure_next_parameter();
+            }
+         }*/
       }
+   }
+}
+
+void sht21_measure_next_parameter() {
+   sht21_measurements_queue_index_g++;
+
+   if (sht21_measurements_queue_index_g >= 2) {
+      sht21_measurements_queue_index_g = 0;
+      init_sht21_measurements_queue();
+      reset_flag(&general_flags_g, SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG);
    }
 }
 
@@ -141,6 +177,7 @@ void init_sht21_measurements_queue() {
       sht21_measurements_queue_g[i].received_data = 0;
       sht21_measurements_queue_g[i].received_data_checksum = 0;
       sht21_measurements_queue_g[i].received_bytes = 0;
+      sht21_measurements_queue_g[i].received_stops = 0;
 
       if (i == 0) {
          sht21_measurements_queue_g[i].command = TRIGGER_T_MEASUREMENT;
@@ -164,6 +201,7 @@ void read_I2C(unsigned char address) {
 
    I2C_SlaveAddressConfig(I2C1, address);
    I2C_MasterRequestConfig(I2C1, I2C_Direction_Receiver);
+   I2C_NumberOfBytesConfig(I2C1, 3);
    I2C_GenerateSTART(I2C1, ENABLE);
 }
 
