@@ -10,6 +10,9 @@ SHT21_Measurement_TypeDef sht21_measurements_queue_g[2];
 unsigned char sht21_measurements_queue_index_g;
 unsigned short sht21_measurement_countdown_counter_g;
 
+volatile float temperature_g;
+volatile float humidity_g;
+
 void DMA1_Channel2_3_IRQHandler() {
    DMA_ClearITPendingBit(DMA1_IT_TC2);
    set_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
@@ -45,9 +48,9 @@ void I2C1_IRQHandler() {
        * sent is written in the I2C_TXDR register.
        */
       if (current_measurement.status & SHT21_WRITE_SENT_FLAG) {
-         sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_WRITE_SENT_FLAG;
+         sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_WRITE_SENT_FLAG);
          I2C_SendData(I2C1, current_measurement.command);
-         sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_COMMAND_SENT_FLAG;
+         sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= (unsigned char) (SHT21_COMMAND_SENT_FLAG);
          sht21_measurement_countdown_counter_g = TIMER3_100MS;
       }
    } else if (I2C_GetFlagStatus(I2C1, I2C_FLAG_RXNE)) {
@@ -56,17 +59,18 @@ void I2C1_IRQHandler() {
       if (current_measurement.status & SHT21_READ_SENT_FLAG) {
          if (current_measurement.received_bytes == 2) {
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_data_checksum = (unsigned char) received_data;
+
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_READ_SENT_FLAG);
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= (unsigned char) (SHT21_DATA_READ_FLAG);
          } else {
-            received_data <<= (current_measurement.received_bytes * 8);
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_data |= received_data;
+            unsigned short current_data = current_measurement.received_data;
+
+            current_data <<= (current_measurement.received_bytes * 8);
+            current_data |= received_data;
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_data = current_data;
          }
 
          sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes++;
-
-         if (sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes >= 3) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_READ_SENT_FLAG;
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_DATA_READ_FLAG;
-         }
       }
    } else if (I2C_GetFlagStatus(I2C1, I2C_FLAG_STOPF)) {
       /* This flag is set by hardware when a Stop condition is detected on the bus and the peripheral is involved in this transfer:
@@ -125,28 +129,32 @@ int main() {
          SHT21_Measurement_TypeDef current_measurement = sht21_measurements_queue_g[sht21_measurements_queue_index_g];
 
          if (current_measurement.status == 0) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_WRITE_SENT_FLAG;
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= (unsigned char) (SHT21_WRITE_SENT_FLAG);
             send_I2C_command(current_measurement.address);
          } else if ((current_measurement.status & SHT21_COMMAND_SENT_FLAG) && sht21_measurement_countdown_counter_g == 0) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_COMMAND_SENT_FLAG;
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_COMMAND_SENT_FLAG);
             read_I2C(current_measurement.address);
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_READ_SENT_FLAG;
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= (unsigned char) (SHT21_READ_SENT_FLAG);
          } else if (current_measurement.status & SHT21_DATA_READ_FLAG) {
-
+            if (current_measurement.command == (unsigned char) (TRIGGER_T_MEASUREMENT)) {
+               temperature_g = sht21_calculate_temperature(current_measurement.received_data, current_measurement.received_data_checksum);
+            } else if (current_measurement.command == (unsigned char) (TRIGGER_RH_MEASUREMENT)) {
+               humidity_g = sht21_calculate_humidity(current_measurement.received_data, current_measurement.received_data_checksum);
+            }
 
             sht21_measure_next_parameter();
          } else if ((current_measurement.status & (SHT21_STOP_RECEIVED_FLAG | SHT21_READ_SENT_FLAG))) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_STOP_RECEIVED_FLAG;
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_STOP_RECEIVED_FLAG);
 
-            if (current_measurement.received_stops < 4) {
-               sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= SHT21_REREAD_FLAG;
+            /*if (current_measurement.received_stops < 4) {
+               sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= (unsigned char) (SHT21_REREAD_FLAG);
                sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes = 0;
                sht21_measurement_countdown_counter_g = TIMER3_100MS;
             } else {
                sht21_measure_next_parameter();
-            }
+            }*/
          } else if ((current_measurement.status & SHT21_REREAD_FLAG) && sht21_measurement_countdown_counter_g == 0) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= ~SHT21_REREAD_FLAG;
+            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_REREAD_FLAG);
             read_I2C(current_measurement.address);
          }
          /*else if (current_measurement.status & SHT21_STOP_RECEIVED_DLAG) {
@@ -158,6 +166,43 @@ int main() {
          }*/
       }
    }
+}
+
+float sht21_calculate_temperature(unsigned short data, unsigned char checksum) {
+   if (checksum != sht21_calculate_crc(data)) {
+      // error
+   }
+   if (data & 0x2) {
+      // error
+   }
+
+   float temperature = (float) (data & ((unsigned short) 0x3FFFC));
+   return 175.72 * temperature / 0xFFFF - 46.85;
+}
+
+float sht21_calculate_humidity(unsigned short data, unsigned char checksum) {
+   if (checksum != sht21_calculate_crc(data)) {
+      // error
+   }
+   if (!(data & 0x2)) {
+      // error
+   }
+
+   data >>= 2;
+
+   float humidity = (float) (data & ((unsigned short) 0x3FFFC));
+   return 125 * humidity / 0xFFFF - 6;
+}
+
+unsigned char sht21_calculate_crc(unsigned short data) {
+  for (unsigned char bit = 0; bit < 16; bit++) {
+    if (data & 0x8000) {
+       data = (data << 1) ^ SHT21_CRC8_POLYNOMIAL;
+    } else {
+       data <<= 1;
+    }
+  }
+  return (unsigned char) (data >>= 8);
 }
 
 void sht21_measure_next_parameter() {

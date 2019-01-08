@@ -1,5 +1,6 @@
 #include "stm32f0xx_conf.h"
 #include "stm32f0xx.h"
+#include <math.h>
 
 #define CLOCK_SPEED 8000000
 #define USART_BAUD_RATE 115200
@@ -34,6 +35,8 @@
 #define SHT21_ADDRESS                   (unsigned char) 0x40
 #define SHT21_ADDRESS_READ              (unsigned char) ((SHT21_ADDRESS << 1) | 0x1)
 
+#define SHT21_CRC8_POLYNOMIAL 0x13100   //CRC-8 polynomial for 16bit value -> x^8 + x^5 + x^4 + 1
+
 //typedef enum {I2C_WRITE = 0, I2C_READ = !I2C_WRITE} I2C_SDA_Direction_Bit;
 typedef enum {
    TRIGGER_T_MEASUREMENT = 0xF3,
@@ -51,14 +54,14 @@ typedef struct {
 } SHT21_Measurement_TypeDef;
 
 typedef enum {
-   SHT21_WRITE_SENT_FLAG =      (unsigned char) 1,
-   SHT21_COMMAND_SENT_FLAG =    (unsigned char) 2,
-   SHT21_READ_SENT_FLAG =       (unsigned char) 4,
-   SHT21_DATA_READ_FLAG =       (unsigned char) 8,
-   SHT21_NACK_RECEIVED_FLAG =   (unsigned char) 16,
-   SHT21_DATA_WASNT_READ_FLAG = (unsigned char) 32,
-   SHT21_STOP_RECEIVED_FLAG =   (unsigned char) 64,
-   SHT21_REREAD_FLAG        =   (unsigned char) 128
+   SHT21_WRITE_SENT_FLAG =      1,
+   SHT21_COMMAND_SENT_FLAG =    2,
+   SHT21_READ_SENT_FLAG =       4,
+   SHT21_DATA_READ_FLAG =       8,
+   SHT21_NACK_RECEIVED_FLAG =   16,
+   SHT21_DATA_WASNT_READ_FLAG = 32,
+   SHT21_STOP_RECEIVED_FLAG =   64,
+   SHT21_REREAD_FLAG        =   128
 } SHT21_Measurement_Flags;
 
 void iwdg_config();
@@ -80,3 +83,7 @@ void init_sht21_measurements_queue();
 void send_I2C_command(unsigned char address);
 void read_I2C(unsigned char address);
 void sht21_measure_next_parameter();
+float sht21_calculate_temperature(unsigned short data, unsigned char checksum);
+float sht21_calculate_humidity(unsigned short data, unsigned char checksum);
+unsigned char sht21_calculate_crc(unsigned short data);
+
