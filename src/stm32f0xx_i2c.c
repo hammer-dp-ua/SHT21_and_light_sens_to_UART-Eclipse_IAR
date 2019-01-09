@@ -250,24 +250,24 @@ void I2C_Init(I2C_TypeDef* I2Cx, I2C_InitTypeDef* I2C_InitStruct)
   * @param  I2C_InitStruct: pointer to an I2C_InitTypeDef structure which will be initialized.
   * @retval None
   */
-void I2C_StructInit(I2C_InitTypeDef* I2C_InitStruct)
+/*void I2C_StructInit(I2C_InitTypeDef* I2C_InitStruct)
 {
-  /*---------------- Reset I2C init structure parameters values --------------*/
-  /* Initialize the I2C_Timing member */
+  //---------------- Reset I2C init structure parameters values --------------
+  // Initialize the I2C_Timing member
   I2C_InitStruct->I2C_Timing = 0;
-  /* Initialize the I2C_AnalogFilter member */
+  // Initialize the I2C_AnalogFilter member
   I2C_InitStruct->I2C_AnalogFilter = I2C_AnalogFilter_Enable;
-  /* Initialize the I2C_DigitalFilter member */
+  // Initialize the I2C_DigitalFilter member
   I2C_InitStruct->I2C_DigitalFilter = 0;
-  /* Initialize the I2C_Mode member */
+  // Initialize the I2C_Mode member
   I2C_InitStruct->I2C_Mode = I2C_Mode_I2C;
-  /* Initialize the I2C_OwnAddress1 member */
+  // Initialize the I2C_OwnAddress1 member
   I2C_InitStruct->I2C_OwnAddress1 = 0;
-  /* Initialize the I2C_Ack member */
+  // Initialize the I2C_Ack member
   I2C_InitStruct->I2C_Ack = I2C_Ack_Disable;
-  /* Initialize the I2C_AcknowledgedAddress member */
+  // Initialize the I2C_AcknowledgedAddress member
   I2C_InitStruct->I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-}
+}*/
 
 /**
   * @brief  Enables or disables the specified I2C peripheral.
@@ -1303,24 +1303,24 @@ unsigned char I2C_ReceiveData(I2C_TypeDef* I2Cx)
   *          This parameter can be: ENABLE or DISABLE.
   * @retval None
   */
-void I2C_DMACmd(I2C_TypeDef* I2Cx, unsigned int I2C_DMAReq, FunctionalState NewState)
+/*void I2C_DMACmd(I2C_TypeDef* I2Cx, unsigned int I2C_DMAReq, FunctionalState NewState)
 {
-  /* Check the parameters */
+  // Check the parameters
   assert_param(IS_I2C_ALL_PERIPH(I2Cx));
   assert_param(IS_FUNCTIONAL_STATE(NewState));
   assert_param(IS_I2C_DMA_REQ(I2C_DMAReq));
 
   if (NewState != DISABLE)
   {
-    /* Enable the selected I2C DMA requests */
+    // Enable the selected I2C DMA requests
     I2Cx->CR1 |= I2C_DMAReq;
   }
   else
   {
-    /* Disable the selected I2C DMA requests */
+    // Disable the selected I2C DMA requests
     I2Cx->CR1 &= (unsigned int)~I2C_DMAReq;
   }
-}
+}*/
 /**
   * @}
   */  

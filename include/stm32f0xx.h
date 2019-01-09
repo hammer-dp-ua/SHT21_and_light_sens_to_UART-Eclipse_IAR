@@ -5606,7 +5606,7 @@ typedef struct
 #define DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler  DMA1_Channel2_3_IRQHandler
 #define DMA1_Channel4_5_6_7_IRQHandler    DMA1_Channel4_5_IRQHandler 
 #define DMA1_Ch4_7_DMA2_Ch3_5_IRQHandler  DMA1_Channel4_5_IRQHandler
-#define ADC1_COMP_IRQHandler              ADC1_IRQHandler
+//#define ADC1_COMP_IRQHandler              ADC1_IRQHandler
 
 #elif defined (STM32F070xB)
 /* Aliases for __IRQn */              

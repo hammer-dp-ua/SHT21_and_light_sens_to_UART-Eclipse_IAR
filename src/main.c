@@ -4,7 +4,7 @@
 #include "main.h"
 
 unsigned int general_flags_g;
-unsigned short tim14_counter_g;
+unsigned short measurements_period_counter_g;
 unsigned int i2c1_isr_register_g;
 SHT21_Measurement_TypeDef sht21_measurements_queue_g[2];
 unsigned char sht21_measurements_queue_index_g;
@@ -12,6 +12,8 @@ unsigned short sht21_measurement_countdown_counter_g;
 
 volatile float temperature_g;
 volatile float humidity_g;
+unsigned short adc_dma_converted_data_g;
+unsigned char usart_data_to_be_transmitted_buffer_g[USART_DATA_TO_BE_TRANSMITTED_BUFFER_SIZE];
 
 void DMA1_Channel2_3_IRQHandler() {
    DMA_ClearITPendingBit(DMA1_IT_TC2);
@@ -24,10 +26,14 @@ void DMA1_Channel1_IRQHandler() {
    }
 }
 
+/*void ADC1_COMP_IRQHandler() {
+   ADC_ClearITPendingBit(ADC1, ADC_IT_EOC);
+}*/
+
 void TIM14_IRQHandler() {
    TIM_ClearITPendingBit(TIM14, TIM_IT_Update);
 
-   tim14_counter_g++;
+   measurements_period_counter_g++;
 }
 
 void TIM3_IRQHandler() {
@@ -93,30 +99,31 @@ void I2C1_IRQHandler() {
 
 int main() {
    RCC_APB2PeriphClockCmd(RCC_APB2Periph_DBGMCU, ENABLE);
-   //iwdg_config();
+   iwdg_config();
    clock_config();
    pins_config();
-   //external_interrupt_config();
    dma_config();
-   usart_config();
+   //usart_config();
+   adc_config();
    timer3_confing();
    timer14_confing();
    i2c_config();
 
-   //IWDG_ReloadCounter();
+   IWDG_ReloadCounter();
 
-   //set_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
+   set_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
 
    init_sht21_measurements_queue();
 
    while (1) {
-      //IWDG_ReloadCounter();
+      IWDG_ReloadCounter();
 
-      if (tim14_counter_g >= TIMER14_10S) {
-         tim14_counter_g = 0;
+      if (measurements_period_counter_g >= TIMER14_10S) {
+         measurements_period_counter_g = 0;
 
          set_flag(&general_flags_g, SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG);
          sht21_measurements_queue_index_g = 0;
+         ADC_StartOfConversion(ADC1);
 
          if (GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_5)) {
             GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_RESET);
@@ -143,37 +150,37 @@ int main() {
             }
 
             sht21_measure_next_parameter();
-         } else if ((current_measurement.status & (SHT21_STOP_RECEIVED_FLAG | SHT21_READ_SENT_FLAG))) {
+
+            if (!read_flag(general_flags_g, SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG)) {
+               // All measurements of SHT21 have been completed
+
+            }
+         } else if (current_measurement.status & SHT21_STOP_RECEIVED_FLAG) {
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_STOP_RECEIVED_FLAG);
 
-            /*if (current_measurement.received_stops < 4) {
-               sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= (unsigned char) (SHT21_REREAD_FLAG);
-               sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes = 0;
-               sht21_measurement_countdown_counter_g = TIMER3_100MS;
-            } else {
-               sht21_measure_next_parameter();
-            }*/
+            if (current_measurement.status & SHT21_READ_SENT_FLAG) {
+               if (current_measurement.received_stops < 4) {
+                  sht21_measurements_queue_g[sht21_measurements_queue_index_g].status |= (unsigned char) (SHT21_REREAD_FLAG);
+                  sht21_measurements_queue_g[sht21_measurements_queue_index_g].received_bytes = 0;
+                  sht21_measurement_countdown_counter_g = TIMER3_100MS;
+               } else {
+                  sht21_measure_next_parameter();
+               }
+            }
          } else if ((current_measurement.status & SHT21_REREAD_FLAG) && sht21_measurement_countdown_counter_g == 0) {
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_REREAD_FLAG);
             read_I2C(current_measurement.address);
          }
-         /*else if (current_measurement.status & SHT21_STOP_RECEIVED_DLAG) {
-            sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= !SHT21_STOP_RECEIVED_DLAG;
-
-            if (current_measurement.status & SHT21_READ_SENT_FLAG) {
-               sht21_measure_next_parameter();
-            }
-         }*/
       }
    }
 }
 
 float sht21_calculate_temperature(unsigned short data, unsigned char checksum) {
    if (checksum != sht21_calculate_crc(data)) {
-      // error
+      return SHT21_CRC_ERROR;
    }
    if (data & 0x2) {
-      // error
+      return SHT21_NOT_TEMPERATURE_MEASUREMENT_ERROR;
    }
 
    float temperature = (float) (data & ((unsigned short) 0x3FFFC));
@@ -182,13 +189,11 @@ float sht21_calculate_temperature(unsigned short data, unsigned char checksum) {
 
 float sht21_calculate_humidity(unsigned short data, unsigned char checksum) {
    if (checksum != sht21_calculate_crc(data)) {
-      // error
+      return SHT21_CRC_ERROR;
    }
    if (!(data & 0x2)) {
-      // error
+      return SHT21_NOT_HUMIDITY_MEASUREMENT_ERROR;
    }
-
-   data >>= 2;
 
    float humidity = (float) (data & ((unsigned short) 0x3FFFC));
    return 125 * humidity / 0xFFFF - 6;
@@ -391,7 +396,7 @@ void dma_config() {
    // USART DMA config
    DMA_InitTypeDef usartDmaInitType;
    usartDmaInitType.DMA_PeripheralBaseAddr = USART1_TDR_ADDRESS;
-   //dmaInitType.DMA_MemoryBaseAddr = (uint32_t)(&usartDataToBeTransmitted);
+   usartDmaInitType.DMA_MemoryBaseAddr = (uint32_t) (&usart_data_to_be_transmitted_buffer_g);
    usartDmaInitType.DMA_DIR = DMA_DIR_PeripheralDST; // Specifies if the peripheral is the source or destination
    usartDmaInitType.DMA_BufferSize = 0;
    usartDmaInitType.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -407,6 +412,26 @@ void dma_config() {
    NVIC_SetPriority(USART1_IRQn, 10);
    NVIC_EnableIRQ(USART1_IRQn);
    DMA_Cmd(USART1_TX_DMA_CHANNEL, ENABLE);
+
+   // ADC DMA config
+   DMA_InitTypeDef adcDmaInitType;
+   adcDmaInitType.DMA_PeripheralBaseAddr = ADC1_DR_ADDRESS;
+   adcDmaInitType.DMA_MemoryBaseAddr = (uint32_t) (&adc_dma_converted_data_g);
+   adcDmaInitType.DMA_DIR = DMA_DIR_PeripheralSRC;
+   adcDmaInitType.DMA_BufferSize = 1;
+   adcDmaInitType.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+   adcDmaInitType.DMA_MemoryInc = DMA_MemoryInc_Disable; // DMA_MemoryInc_Enable if DMA_InitTypeDef.DMA_BufferSize > 1
+   adcDmaInitType.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+   adcDmaInitType.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+   adcDmaInitType.DMA_Mode = DMA_Mode_Circular; // DMA_Mode_Circular in case of multiple channels
+   adcDmaInitType.DMA_Priority = DMA_Priority_Low;
+   adcDmaInitType.DMA_M2M = DMA_M2M_Disable;
+   DMA_Init(ADC1_DMA_CHANNEL, &adcDmaInitType);
+
+   DMA_ITConfig(ADC1_DMA_CHANNEL, DMA_IT_TC, ENABLE);
+   NVIC_SetPriority(ADC1_IRQn, 30); // Higher than timers have
+   NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+   DMA_Cmd(ADC1_DMA_CHANNEL, ENABLE);
 }
 
 void usart_config() {
@@ -440,18 +465,35 @@ void usart_config() {
    USART_Cmd(USART1, ENABLE);
 }
 
-void external_interrupt_config() {
-   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+void adc_config() {
+   RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
-   NVIC_InitTypeDef nvic_init_type_structure;
-   nvic_init_type_structure.NVIC_IRQChannelPriority = 3;
-   nvic_init_type_structure.NVIC_IRQChannelCmd = ENABLE;
-   nvic_init_type_structure.NVIC_IRQChannel = EXTI0_1_IRQn;
-   NVIC_Init(&nvic_init_type_structure);
-   nvic_init_type_structure.NVIC_IRQChannel = EXTI2_3_IRQn;
-   NVIC_Init(&nvic_init_type_structure);
-   nvic_init_type_structure.NVIC_IRQChannel = EXTI4_15_IRQn;
-   NVIC_Init(&nvic_init_type_structure);
+   GPIO_InitTypeDef gpioInitType;
+   gpioInitType.GPIO_Pin = LIGHT_SENSOR_PIN;
+   gpioInitType.GPIO_PuPd = GPIO_PuPd_NOPULL;
+   gpioInitType.GPIO_Mode = GPIO_Mode_AN;
+   gpioInitType.GPIO_Speed = GPIO_Speed_Level_1; // Low 2 MHz
+   GPIO_Init(LIGHT_SENSOR_PORT, &gpioInitType);
+
+   ADC_InitTypeDef adcInitType;
+   adcInitType.ADC_ContinuousConvMode = ENABLE;
+   adcInitType.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
+   ADC_StructInit(&adcInitType);
+   ADC_Init(ADC1, &adcInitType);
+
+   ADC_ClockModeConfig(ADC1, ADC_ClockMode_SynClkDiv4);
+
+   ADC_DMARequestModeConfig(ADC1, ADC_DMAMode_Circular); // ADC_DMAMode_Circular in case of multiple channels
+   ADC_DMACmd(ADC1, ENABLE);
+
+   ADC_ChannelConfig(ADC1, LIGHT_SENSOR_ADC_CHANNEL, ADC_SampleTime_41_5Cycles);
+
+   ADC_AutoPowerOffCmd(ADC1, ENABLE);
+
+   ADC_GetCalibrationFactor(ADC1);
+
+   ADC_Cmd(ADC1, ENABLE);
+   while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_ADEN));
 }
 
 void send_usard_data(char *string) {

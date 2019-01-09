@@ -11,14 +11,23 @@
 #define TIMER14_PRESCALER 0xFFFF
 #define TIMER14_TACTS_PER_SECOND ((float) CLOCK_SPEED / TIMER14_PERIOD / TIMER14_PRESCALER)
 
-#define USART1_TX_DMA_CHANNEL DMA1_Channel2
-#define USART1_TDR_ADDRESS (unsigned int) (&(USART1->TDR))
+#define USART1_TX_DMA_CHANNEL   DMA1_Channel2
+#define USART1_TDR_ADDRESS      (unsigned int) (&(USART1->TDR))
+
+#define ADC1_DMA_CHANNEL DMA1_Channel1
+#define ADC1_DR_ADDRESS (uint32_t) (&(ADC1->DR))
+
+#define LIGHT_SENSOR_ADC_CHANNEL ADC_Channel_4 // See ADC pin
+#define LIGHT_SENSOR_PIN    GPIO_Pin_4
+#define LIGHT_SENSOR_PORT   GPIOA
+#define USART_TX_PIN    GPIO_Pin_9
+#define USART_TX_PORT   GPIOA
 
 // General flags
 #define USART_TRANSFER_COMPLETE_FLAG            (unsigned int) 1
 #define SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG   (unsigned int) 2
 
-#define USART_DATA_RECEIVED_BUFFER_SIZE 50
+#define USART_DATA_TO_BE_TRANSMITTED_BUFFER_SIZE 50
 
 #define TIMER3_10MS (unsigned short) (10 / TIMER3_MS_PER_PERIOD)
 #define TIMER3_100MS (unsigned short) (100 / TIMER3_MS_PER_PERIOD)
@@ -29,13 +38,14 @@
 #define TIMER14_60S (unsigned short) (60 * TIMER14_TACTS_PER_SECOND)
 #define TIMER14_5MINS (unsigned short) (300 * TIMER14_TACTS_PER_SECOND)
 
-#define USART_TX_PIN GPIO_Pin_9
-#define USART_TX_PORT GPIOA
-
 #define SHT21_ADDRESS                   (unsigned char) 0x40
 #define SHT21_ADDRESS_READ              (unsigned char) ((SHT21_ADDRESS << 1) | 0x1)
 
 #define SHT21_CRC8_POLYNOMIAL 0x13100   //CRC-8 polynomial for 16bit value -> x^8 + x^5 + x^4 + 1
+
+#define SHT21_CRC_ERROR                         -100.0F
+#define SHT21_NOT_TEMPERATURE_MEASUREMENT_ERROR -200.0F
+#define SHT21_NOT_HUMIDITY_MEASUREMENT_ERROR    -300.0F
 
 //typedef enum {I2C_WRITE = 0, I2C_READ = !I2C_WRITE} I2C_SDA_Direction_Bit;
 typedef enum {
@@ -73,7 +83,7 @@ void timer14_confing();
 void init_pin_as_output(GPIO_TypeDef* GPIOx, unsigned int pin);
 void dma_config();
 void usart_config();
-void external_interrupt_config();
+void adc_config();
 void send_usard_data(char string[]);
 void set_flag(unsigned int *flags, unsigned int flag_value);
 void reset_flag(unsigned int *flags, unsigned int flag_value);
@@ -86,4 +96,3 @@ void sht21_measure_next_parameter();
 float sht21_calculate_temperature(unsigned short data, unsigned char checksum);
 float sht21_calculate_humidity(unsigned short data, unsigned char checksum);
 unsigned char sht21_calculate_crc(unsigned short data);
-
