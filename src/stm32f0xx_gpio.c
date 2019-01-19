@@ -483,9 +483,9 @@ void GPIO_WriteBit(GPIO_TypeDef* GPIOx, unsigned short GPIO_Pin, BitAction BitVa
   * @param  GPIOx: where x can be (A, B, C, D, E or F) to select the GPIO peripheral.
   * @note   GPIOC, GPIOD, GPIOE and GPIOF  are available only for STM32F072 and STM32F091. 
   * @param  GPIO_PinSource: specifies the pin for the Alternate function.
-  *          This parameter can be GPIO_PinSourcex where x can be (0..15) for GPIOA, GPIOB, GPIOD, GPIOE
+  *          This parameter can be GPIO_PinSourceX where X can be (0..15) for GPIOA, GPIOB, GPIOD, GPIOE
   *          and (0..12) for GPIOC and (0, 2..5, 9..10) for GPIOF.    
-  * @param  GPIO_AF: selects the pin to used as Alternate function.
+  * @param  GPIO_AF: selects the pin to be used as Alternate function.
   *          This parameter can be one of the following value:
   *            @arg GPIO_AF_0:  WKUP, EVENTOUT, TIM15, SPI1, TIM17, MCO, SWDAT, SWCLK,
   *                             TIM14, BOOT, USART1, CEC, IR_OUT, SPI2, TIM3, USART4,
@@ -503,7 +503,7 @@ void GPIO_WriteBit(GPIO_TypeDef* GPIOx, unsigned short GPIO_Pin, BitAction BitVa
   * @note   The pin should already been configured in Alternate Function mode(AF)
   *         using GPIO_InitStruct->GPIO_Mode = GPIO_Mode_AF
   * @note   Refer to the Alternate function mapping table in the device datasheet 
-  *         for the detailed mapping of the system and peripherals'alternate 
+  *         for the detailed mapping of the system and peripherals' alternate
   *         function I/O pins.
   * @retval None
   */

@@ -17,11 +17,20 @@
 #define ADC1_DMA_CHANNEL DMA1_Channel1
 #define ADC1_DR_ADDRESS (uint32_t) (&(ADC1->DR))
 
+// LIGHT_SENSOR
 #define LIGHT_SENSOR_ADC_CHANNEL ADC_Channel_4 // See ADC pin
-#define LIGHT_SENSOR_PIN    GPIO_Pin_4
-#define LIGHT_SENSOR_PORT   GPIOA
-#define USART_TX_PIN    GPIO_Pin_9
-#define USART_TX_PORT   GPIOA
+#define LIGHT_SENSOR_PIN  GPIO_Pin_4
+#define LIGHT_SENSOR_PORT GPIOA
+// USART
+#define USART_TX_PIN  GPIO_Pin_2
+#define USART_TX_PORT GPIOA
+#define USART_TX_AF_PIN_SOURCE GPIO_PinSource2
+// I2C
+#define I2C_PORT    GPIOA
+#define I2C_SCL_PIN GPIO_Pin_9
+#define I2C_SDA_PIN GPIO_Pin_10
+#define I2C_SCL_AF_PIN_SOURCE GPIO_PinSource9
+#define I2C_SDA_AF_PIN_SOURCE GPIO_PinSource10
 
 // General flags
 #define USART_TRANSFER_COMPLETE_FLAG            (unsigned int) 1

@@ -103,7 +103,7 @@ int main() {
    clock_config();
    pins_config();
    dma_config();
-   //usart_config();
+   usart_config();
    adc_config();
    timer3_confing();
    timer14_confing();
@@ -360,15 +360,15 @@ void i2c_config() {
    RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
 
    GPIO_InitTypeDef GPIO_InitStructure;
-   GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9 | GPIO_Pin_10;
+   GPIO_InitStructure.GPIO_Pin = I2C_SCL_PIN | I2C_SDA_PIN;
    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
    GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-   GPIO_Init(GPIOA, &GPIO_InitStructure);
+   GPIO_Init(I2C_PORT, &GPIO_InitStructure);
 
-   GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_4);
-   GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_4);
+   GPIO_PinAFConfig(I2C_PORT, I2C_SCL_AF_PIN_SOURCE, GPIO_AF_4);
+   GPIO_PinAFConfig(I2C_PORT, I2C_SDA_AF_PIN_SOURCE, GPIO_AF_4);
 
    I2C_InitTypeDef I2C_InitStructure;
    I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
@@ -442,7 +442,8 @@ void usart_config() {
    usart_pins_config.GPIO_Mode = GPIO_Mode_AF;
    usart_pins_config.GPIO_OType = GPIO_OType_PP; // GPIO_OType_OD for USART RX
    GPIO_Init(USART_TX_PORT, &usart_pins_config);
-   GPIO_PinAFConfig(USART_TX_PORT, GPIO_PinSource9, GPIO_AF_1);
+
+   GPIO_PinAFConfig(USART_TX_PORT, USART_TX_AF_PIN_SOURCE, GPIO_AF_1);
 
    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
