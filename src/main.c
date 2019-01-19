@@ -1,5 +1,6 @@
 // 030F4P6
 
+#include <math.h>
 #include "stm32f0xx.h"
 #include "main.h"
 
@@ -9,11 +10,11 @@ unsigned int i2c1_isr_register_g;
 SHT21_Measurement_TypeDef sht21_measurements_queue_g[2];
 unsigned char sht21_measurements_queue_index_g;
 unsigned short sht21_measurement_countdown_counter_g;
+char *result_to_send_g;
 
 volatile float temperature_g;
 volatile float humidity_g;
 unsigned short adc_dma_converted_data_g;
-unsigned char usart_data_to_be_transmitted_buffer_g[USART_DATA_TO_BE_TRANSMITTED_BUFFER_SIZE];
 
 void DMA1_Channel2_3_IRQHandler() {
    DMA_ClearITPendingBit(DMA1_IT_TC2);
@@ -43,6 +44,13 @@ void TIM3_IRQHandler() {
       sht21_measurement_countdown_counter_g--;
    }
 }
+
+/*void USART1_IRQHandler() {
+   if (USART_GetFlagStatus(USART1, USART_FLAG_TC) == SET) {
+      USART_ClearITPendingBit(USART1, USART_IT_TC);
+      USART_ClearFlag(USART1, USART_FLAG_TC);
+   }
+}*/
 
 void I2C1_IRQHandler() {
    i2c1_isr_register_g |= I2C1->ISR;
@@ -111,8 +119,6 @@ int main() {
 
    IWDG_ReloadCounter();
 
-   set_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
-
    init_sht21_measurements_queue();
 
    while (1) {
@@ -124,12 +130,6 @@ int main() {
          set_flag(&general_flags_g, SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG);
          sht21_measurements_queue_index_g = 0;
          ADC_StartOfConversion(ADC1);
-
-         if (GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_5)) {
-            GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_RESET);
-         } else {
-            GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_SET);
-         }
       }
 
       if (read_flag(general_flags_g, SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG)) {
@@ -154,6 +154,23 @@ int main() {
             if (!read_flag(general_flags_g, SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG)) {
                // All measurements of SHT21 have been completed
 
+               char *temperature = float_to_string(temperature_g, 2);
+               char *humidity = float_to_string(humidity_g, 2);
+               char *light = num_to_string(adc_dma_converted_data_g);
+               char *parameters[] = {temperature, humidity, light, NULL};
+               result_to_send_g = set_string_parameters(SEND_ALL_MEASURED_PARAMS_JSON, parameters);
+
+               free(temperature);
+               free(humidity);
+               free(light);
+
+               send_usard_data(result_to_send_g);
+
+               if (GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_5)) {
+                  GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_RESET);
+               } else {
+                  GPIO_WriteBit(GPIOA, GPIO_Pin_5, Bit_SET);
+               }
             }
          } else if (current_measurement.status & SHT21_STOP_RECEIVED_FLAG) {
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_STOP_RECEIVED_FLAG);
@@ -171,6 +188,9 @@ int main() {
             sht21_measurements_queue_g[sht21_measurements_queue_index_g].status &= (unsigned char) (~SHT21_REREAD_FLAG);
             read_I2C(current_measurement.address);
          }
+      } else if (read_flag(general_flags_g, USART_TRANSFER_COMPLETE_FLAG)) {
+         reset_flag(&general_flags_g, USART_TRANSFER_COMPLETE_FLAG);
+         free(result_to_send_g);
       }
    }
 }
@@ -396,7 +416,7 @@ void dma_config() {
    // USART DMA config
    DMA_InitTypeDef usartDmaInitType;
    usartDmaInitType.DMA_PeripheralBaseAddr = USART1_TDR_ADDRESS;
-   usartDmaInitType.DMA_MemoryBaseAddr = (uint32_t) (&usart_data_to_be_transmitted_buffer_g);
+   //usartDmaInitType.DMA_MemoryBaseAddr = (uint32_t) (&usart_data_to_be_transmitted_buffer_g);
    usartDmaInitType.DMA_DIR = DMA_DIR_PeripheralDST; // Specifies if the peripheral is the source or destination
    usartDmaInitType.DMA_BufferSize = 0;
    usartDmaInitType.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -510,24 +530,4 @@ void send_usard_data(char *string) {
    USART1_TX_DMA_CHANNEL->CMAR = (unsigned int) string;
    USART_ClearFlag(USART1, USART_FLAG_TC);
    DMA_Cmd(USART1_TX_DMA_CHANNEL, ENABLE);
-}
-
-void set_flag(unsigned int *flags, unsigned int flag_value) {
-   *flags |= flag_value;
-}
-
-void reset_flag(unsigned int *flags, unsigned int flag_value) {
-   *flags &= ~(*flags & flag_value);
-}
-
-unsigned char read_flag(unsigned int flags, unsigned int flag_value) {
-   return (flags & flag_value) > 0 ? 1 : 0;
-}
-
-unsigned short get_string_length(char string[]) {
-   unsigned short length = 0;
-
-   for (char *string_pointer = string; *string_pointer != '\0'; string_pointer++, length++) {
-   }
-   return length;
 }

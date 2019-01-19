@@ -1,6 +1,6 @@
 #include "stm32f0xx_conf.h"
 #include "stm32f0xx.h"
-#include <math.h>
+#include "utils.h"
 
 #define CLOCK_SPEED 8000000
 #define USART_BAUD_RATE 115200
@@ -35,6 +35,7 @@
 // General flags
 #define USART_TRANSFER_COMPLETE_FLAG            (unsigned int) 1
 #define SHT21_MEASUREMENT_IS_IN_PROGRESS_FLAG   (unsigned int) 2
+
 
 #define USART_DATA_TO_BE_TRANSMITTED_BUFFER_SIZE 50
 
@@ -83,6 +84,8 @@ typedef enum {
    SHT21_REREAD_FLAG        =   128
 } SHT21_Measurement_Flags;
 
+char SEND_ALL_MEASURED_PARAMS_JSON[] = "{\"temperature\":\"<1>\",\"humidity\":\"<2>\",\"light\":\"<3>\"}";
+
 void iwdg_config();
 void clock_config();
 void pins_config();
@@ -94,10 +97,6 @@ void dma_config();
 void usart_config();
 void adc_config();
 void send_usard_data(char string[]);
-void set_flag(unsigned int *flags, unsigned int flag_value);
-void reset_flag(unsigned int *flags, unsigned int flag_value);
-unsigned char read_flag(unsigned int flags, unsigned int flag_value);
-unsigned short get_string_length(char string[]);
 void init_sht21_measurements_queue();
 void send_I2C_command(unsigned char address);
 void read_I2C(unsigned char address);
