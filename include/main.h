@@ -84,7 +84,7 @@ typedef enum {
    SHT21_REREAD_FLAG        =   128
 } SHT21_Measurement_Flags;
 
-char SEND_ALL_MEASURED_PARAMS_JSON[] = "{\"temperature\":\"<1>\",\"humidity\":\"<2>\",\"light\":\"<3>\"}";
+char SEND_ALL_MEASURED_PARAMS_JSON[] = "{\"temperature\":<1>,\"humidity\":<2>,\"light\":<3>}";
 
 void iwdg_config();
 void clock_config();

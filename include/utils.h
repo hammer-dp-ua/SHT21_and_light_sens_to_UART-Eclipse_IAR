@@ -14,7 +14,7 @@ unsigned short get_string_length(char string[]);
 unsigned char is_string_starts_with(char long_string[], char short_string[]);
 char *float_to_string(float number, unsigned char precise);
 unsigned int powi(unsigned int x, unsigned char y);
-char *num_to_string(unsigned int number);
+char *num_to_string(int number);
 unsigned int divide_by_10(unsigned int dividend);
 unsigned char get_first_digit(unsigned int long_digit);
 char *array_to_string(char array[], unsigned char array_length);

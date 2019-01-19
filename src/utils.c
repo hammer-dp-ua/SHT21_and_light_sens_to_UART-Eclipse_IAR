@@ -169,9 +169,11 @@ unsigned char is_string_starts_with(char long_string[], char short_string[]) {
  * precise amount of digits in fractional part
  */
 char *float_to_string(float number, unsigned char precise) {
+   float positive_number = fabs(number);
    float integer_part;
-   float fractional_part = modff(number, &integer_part);
-   char *integer_part_string = num_to_string((unsigned int) integer_part);
+   float fractional_part = modff(positive_number, &integer_part);
+   char *integer_part_string = num_to_string((int) integer_part);
+   unsigned char negative_addend = number < 0 ? 1 : 0;
 
    fractional_part += 1; // 1 is to be removed later
    fractional_part *= powi(10, precise);
@@ -183,22 +185,26 @@ char *float_to_string(float number, unsigned char precise) {
 
    unsigned char integer_part_string_length = get_string_length(integer_part_string);
    unsigned char fractional_part_string_length = get_string_length(fractional_part_string) - 1; // first 1 is to be removed later
-   char *result = (char *) malloc(integer_part_string_length + fractional_part_string_length + 2); // + '.' + '\0'
+   char *result = (char *) malloc(integer_part_string_length + fractional_part_string_length + negative_addend + 2); // + '.' + '\0'
 
    unsigned char result_location = 0;
    for (unsigned char i = 0; i < integer_part_string_length; i++, result_location++) {
-      *(result + result_location) = *(integer_part_string + i);
+      *(result + result_location + negative_addend) = *(integer_part_string + i);
    }
    free(integer_part_string);
 
-   *(result + result_location) = '.';
+   *(result + result_location + negative_addend) = '.';
    result_location++;
 
    for (unsigned char i = 0; i < fractional_part_string_length; i++, result_location++) {
-      *(result + result_location) = *(fractional_part_string + i + 1); // first 1 should not be read
+      *(result + result_location + negative_addend) = *(fractional_part_string + i + 1); // first 1 should not be read
    }
    free(fractional_part_string);
-   *(result + result_location) = '\0';
+
+   if (negative_addend) {
+      result[0] = '-';
+   }
+   *(result + result_location + negative_addend) = '\0';
    return result;
 }
 
@@ -214,7 +220,7 @@ unsigned int powi(unsigned int x, unsigned char y) {
 /**
  * Do not forget to call free() function on returned pointer when it's no longer needed
  */
-char *num_to_string(unsigned int number) {
+char *num_to_string(int number) {
    char *result_string_pointer = NULL;
 
    if (number == 0) {
@@ -227,31 +233,33 @@ char *num_to_string(unsigned int number) {
    unsigned char string_size = 1;
    unsigned int divider = 1;
    unsigned int divider_tmp = 10;
+   unsigned int positive_number = abs(number);
+   unsigned char negative_addend = number < 0 ? 1 : 0;
 
-   for (unsigned char i = 0; divider_tmp <= number; i++) {
+   for (unsigned char i = 0; divider_tmp <= positive_number; i++) {
       divider = divider_tmp;
       divider_tmp *= 10;
       string_size++;
    }
 
-   unsigned int remaining = number;
+   unsigned int remaining = positive_number;
    unsigned char string_length = 0;
 
    while (string_size > 0) {
       unsigned char last_digit_was_zero = 0;
+
       if (remaining < divider) {
          last_digit_was_zero = 1;
       }
       unsigned char result_character = last_digit_was_zero ? 0 : get_first_digit(remaining);
-      //unsigned char result_character = (unsigned char) (remaining / divider);
 
       if (result_string_pointer == NULL && result_character) {
-         result_string_pointer = malloc(string_size + 1);
+         result_string_pointer = malloc(string_size + negative_addend + 1);
          string_length = string_size;
       }
       if (result_string_pointer != NULL) {
          unsigned char index = string_length - string_size;
-         *(result_string_pointer + index) = result_character + '0';
+         *(result_string_pointer + negative_addend + index) = result_character + '0';
       }
 
       if (!last_digit_was_zero) {
@@ -261,7 +269,11 @@ char *num_to_string(unsigned int number) {
       //divider /= 10;
       string_size--;
    }
-   result_string_pointer[string_length] = '\0';
+
+   if (negative_addend) {
+      result_string_pointer[0] = '-';
+   }
+   result_string_pointer[string_length + negative_addend] = '\0';
    return result_string_pointer;
 }
 
